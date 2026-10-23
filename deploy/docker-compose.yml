@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  sadr-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: sadr-api-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - SADR_HOST=0.0.0.0
+      - SADR_PORT=8000
+      - SADR_WORKERS=4
+      - SADR_REDIS_URL=redis://sadr-redis:6379/0
+      - SADR_USE_REDIS=true
+      - SADR_DATABASE_URL=postgresql+asyncpg://sadr_user:sadr_secret@sadr-postgres:5432/sadr_db
+      - SADR_S3_ENDPOINT=http://sadr-minio:9000
+      - SADR_S3_BUCKET=sadr-checkpoints
+      - SADR_S3_ACCESS_KEY=minioadmin
+      - SADR_S3_SECRET_KEY=minioadmin
+    depends_on:
+      - sadr-redis
+      - sadr-postgres
+      - sadr-minio
+    volumes:
+      - sadr_state:/app/state
+      - sadr_logs:/app/logs
+      - sadr_workspace:/app/workspace
+    networks:
+      - sadr-network
+
+  sadr-redis:
+    image: redis:7-alpine
+    container_name: sadr-redis-cluster
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - sadr_redis_data:/data
+    networks:
+      - sadr-network
+
+  sadr-postgres:
+    image: postgres:16-alpine
+    container_name: sadr-postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sadr_user
+      POSTGRES_PASSWORD: sadr_secret
+      POSTGRES_DB: sadr_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - sadr_pg_data:/var/lib/postgresql/data
+    networks:
+      - sadr-network
+
+  sadr-minio:
+    image: minio/minio:latest
+    container_name: sadr-minio-s3
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - sadr_minio_data:/data
+    networks:
+      - sadr-network
+
+  sadr-prometheus:
+    image: prom/prometheus:latest
+    container_name: sadr-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - sadr-network
+
+networks:
+  sadr-network:
+    driver: bridge
+
+volumes:
+  sadr_state:
+  sadr_logs:
+  sadr_workspace:
+  sadr_redis_data:
+  sadr_pg_data:
+  sadr_minio_data:

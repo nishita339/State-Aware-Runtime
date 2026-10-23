@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SADR — Interactive Real-Time Systems Governance Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .glass { background: rgba(17, 24, 39, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .pulse-dot { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Top Navigation -->
+  <header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b border-gray-800">
+    <div class="flex items-center gap-3">
+      <div class="h-3 w-3 rounded-full bg-emerald-500 pulse-dot"></div>
+      <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 bg-clip-text text-transparent">
+        State-Aware Durable Runtime (SADR)
+      </h1>
+      <span class="text-xs bg-indigo-950 text-indigo-300 border border-indigo-700/50 px-2 py-0.5 rounded-full font-mono">
+        Enterprise Cluster v0.1.0
+      </span>
+    </div>
+    <div class="flex items-center gap-4 text-sm">
+      <div id="connectionStatus" class="flex items-center gap-2 text-emerald-400 text-xs font-mono">
+        <span class="h-2 w-2 rounded-full bg-emerald-400"></span> WebSocket Live
+      </div>
+      <a href="/docs" target="_blank" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs transition">
+        Swagger API
+      </a>
+      <a href="/metrics" target="_blank" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs transition">
+        Prometheus
+      </a>
+    </div>
+  </header>
+
+  <!-- Interactive Controls Bar -->
+  <section class="glass border-b border-gray-800 px-6 py-3.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-2 flex-1 min-w-[300px]">
+        <input id="newObjectiveInput" type="text" placeholder="Enter new agent objective (e.g. Build fault-tolerant microservice)..." 
+               class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500">
+        <button onclick="createNewSessionFromUI()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3.5 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 whitespace-nowrap">
+          <span>+</span> Launch Session
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="simulateSafeAction()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
+          ▶ Propose Safe Action
+        </button>
+        <button onclick="injectMaliciousAction()" class="bg-red-700 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
+          ⚠️ Inject Malicious Action
+        </button>
+        <button onclick="testFalseCompletion()" class="bg-amber-700 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
+          🔒 Test False Completion
+        </button>
+        <button onclick="testValidCompletion()" class="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
+          ✓ Verified Completion
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Container -->
+  <main class="flex-1 p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto w-full">
+    
+    <!-- Left Column: Metrics & Active Sessions -->
+    <div class="lg:col-span-1 space-y-6">
+      <!-- Cluster Telemetry Card -->
+      <div class="glass rounded-xl p-5 shadow-lg space-y-4">
+        <h2 class="text-sm font-semibold uppercase text-gray-400 tracking-wider">Cluster Telemetry</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-800">
+            <div class="text-[11px] text-gray-400">Active Sessions</div>
+            <div id="statActiveSessions" class="text-2xl font-bold text-white mt-1">--</div>
+          </div>
+          <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-800">
+            <div class="text-[11px] text-gray-400">WS Streams</div>
+            <div id="statWsConns" class="text-2xl font-bold text-emerald-400 mt-1">--</div>
+          </div>
+          <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-800">
+            <div class="text-[11px] text-gray-400">Compliance Rate</div>
+            <div class="text-2xl font-bold text-blue-400 mt-1">100.0%</div>
+          </div>
+          <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-800">
+            <div class="text-[11px] text-gray-400">Drift Bound (D*)</div>
+            <div class="text-2xl font-bold text-purple-400 mt-1">&lt; 0.27</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Selector Card -->
+      <div class="glass rounded-xl p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase text-gray-400 tracking-wider">Sessions</h2>
+          <button onclick="refreshSessions()" class="text-xs text-blue-400 hover:underline">Refresh</button>
+        </div>
+        <div id="sessionList" class="space-y-2 max-h-72 overflow-y-auto pr-1 text-xs font-mono">
+          <div class="text-xs text-gray-500">Loading sessions...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center/Right Column: Live Session Inspector & Event Stream -->
+    <div class="lg:col-span-3 space-y-6">
+      <!-- Active Session Hero Banner -->
+      <div class="glass rounded-xl p-6 shadow-lg border border-indigo-900/40">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="text-xs uppercase text-indigo-400 font-semibold tracking-wide">Active Session</div>
+            <h2 id="currentSessionId" class="text-lg font-bold text-white mt-0.5 font-mono">Select a session</h2>
+            <p id="currentObjective" class="text-xs text-gray-300 mt-1 italic">No session currently attached.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-700 text-xs">
+              <span class="text-gray-400">Total Actions:</span> <span id="sessActions" class="font-bold text-white">0</span>
+            </div>
+            <div class="px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-700 text-xs">
+              <span class="text-gray-400">Peak Drift:</span> <span id="sessDrift" class="font-bold text-emerald-400">0.00</span>
+            </div>
+            <div id="sessStatusBadge" class="px-3 py-1.5 rounded-lg bg-emerald-950 border border-emerald-700 text-emerald-300 text-xs font-semibold uppercase">
+              READY
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-Time Causal Event Stream (Springdrift & ABC Governance) -->
+      <div class="glass rounded-xl p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-semibold uppercase text-gray-400 tracking-wider">Causal Lineage & Real-Time Event Stream</h2>
+            <span class="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded font-mono">JSONL Live</span>
+          </div>
+          <span class="text-xs text-gray-500 font-mono" id="eventCounter">0 events recorded</span>
+        </div>
+
+        <div id="eventStream" class="h-96 overflow-y-auto font-mono text-xs space-y-2 p-2 bg-gray-950/80 rounded-lg border border-gray-900">
+          <div class="text-gray-500 text-center py-12">Connect to a session to inspect real-time governance stream...</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let activeSocket = null;
+    let currentSession = null;
+    let eventCount = 0;
+
+    async function loadTelemetry() {
+      try {
+        const res = await fetch('/health');
+        const data = await res.json();
+        document.getElementById('statActiveSessions').innerText = data.active_sessions;
+        document.getElementById('statWsConns').innerText = data.active_ws_connections;
+      } catch (e) {
+        console.error("Health check failed:", e);
+      }
+    }
+
+    async function refreshSessions() {
+      try {
+        const res = await fetch('/v1/sessions');
+        const sessionIds = await res.json();
+        const listEl = document.getElementById('sessionList');
+        listEl.innerHTML = '';
+
+        if (!sessionIds.length) {
+          listEl.innerHTML = '<div class="text-xs text-gray-500">No sessions active. Create one above!</div>';
+          return;
+        }
+
+        sessionIds.forEach(id => {
+          const btn = document.createElement('button');
+          btn.className = `w-full text-left p-2.5 rounded-lg border transition flex items-center justify-between ${id === currentSession ? 'bg-indigo-950/80 border-indigo-600 text-white' : 'bg-gray-900/50 border-gray-800 text-gray-300 hover:bg-gray-800'}`;
+          btn.innerHTML = `<span class="truncate">${id}</span> <span class="text-[10px] text-gray-500">Inspect &rarr;</span>`;
+          btn.onclick = () => selectSession(id);
+          listEl.appendChild(btn);
+        });
+
+        if (!currentSession && sessionIds.length) {
+          selectSession(sessionIds[0]);
+        }
+      } catch (e) {
+        console.error("Failed loading sessions:", e);
+      }
+    }
+
+    async function selectSession(sessionId) {
+      currentSession = sessionId;
+      document.getElementById('currentSessionId').innerText = sessionId;
+
+      try {
+        const res = await fetch(`/v1/sessions/${sessionId}`);
+        const data = await res.json();
+        document.getElementById('currentObjective').innerText = `"${data.objective}"`;
+        document.getElementById('sessActions').innerText = data.total_actions;
+        document.getElementById('sessDrift').innerText = data.current_drift.toFixed(4);
+        document.getElementById('sessStatusBadge').innerText = data.status;
+      } catch (e) {}
+
+      // Connect WebSocket stream
+      if (activeSocket) {
+        activeSocket.close();
+      }
+
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${proto}//${window.location.host}/v1/sessions/${sessionId}/stream`;
+      activeSocket = new WebSocket(wsUrl);
+
+      const streamEl = document.getElementById('eventStream');
+      streamEl.innerHTML = '';
+      eventCount = 0;
+
+      activeSocket.onopen = () => {
+        document.getElementById('connectionStatus').innerHTML = '<span class="h-2 w-2 rounded-full bg-emerald-400"></span> Live Connected';
+      };
+
+      activeSocket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        eventCount++;
+        document.getElementById('eventCounter').innerText = `${eventCount} events recorded`;
+
+        const row = document.createElement('div');
+        const color = (msg.event_type && (msg.event_type.includes('blocked') || msg.event_type.includes('fail') || msg.event_type.includes('rejected'))) ? 'text-red-400' :
+                      (msg.event_type && msg.event_type.includes('verified')) ? 'text-emerald-400' :
+                      (msg.event_type && msg.event_type.includes('drift')) ? 'text-purple-400' : 'text-blue-300';
+
+        row.className = 'p-1.5 border-b border-gray-900 hover:bg-gray-900/40 flex items-start gap-2';
+        row.innerHTML = `
+          <span class="text-gray-500 font-mono">[${new Date().toLocaleTimeString()}]</span>
+          <span class="px-1.5 py-0.2 rounded text-[10px] bg-gray-800 ${color} uppercase font-semibold">${msg.event_type || 'EVENT'}</span>
+          <span class="text-gray-300 flex-1 break-all">${JSON.stringify(msg.payload || msg)}</span>
+        `;
+        streamEl.prepend(row);
+      };
+
+      activeSocket.onclose = () => {
+        document.getElementById('connectionStatus').innerHTML = '<span class="h-2 w-2 rounded-full bg-gray-500"></span> Stream Closed';
+      };
+    }
+
+    async function createNewSessionFromUI() {
+      const input = document.getElementById('newObjectiveInput');
+      const objective = input.value.trim() || 'Develop distributed resilient microservice';
+      input.value = '';
+
+      const res = await fetch('/v1/sessions', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({objective: objective, tenant_id: 'ui_tenant'})
+      });
+      const data = await res.json();
+      await refreshSessions();
+      selectSession(data.session_id);
+    }
+
+    async function simulateSafeAction() {
+      if (!currentSession) return;
+      await fetch(`/v1/sessions/${currentSession}/actions/evaluate`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          action_type: 'tool_call',
+          tool_name: 'compile_code',
+          parameters: {'target': 'main.py'},
+          rationale: 'Build and check syntax'
+        })
+      });
+      await fetch(`/v1/sessions/${currentSession}/actions/commit`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          proposal: {action_type: 'tool_call', tool_name: 'compile_code', parameters: {'target': 'main.py'}},
+          output: 'Compilation successful. 0 errors.',
+          state_diff: {'binary_built': true},
+          success: true,
+          tokens_used: 120
+        })
+      });
+      const res = await fetch(`/v1/sessions/${currentSession}`);
+      const d = await res.json();
+      document.getElementById('sessActions').innerText = d.total_actions;
+    }
+
+    async function injectMaliciousAction() {
+      if (!currentSession) return;
+      await fetch(`/v1/sessions/${currentSession}/actions/evaluate`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          action_type: 'shell_exec',
+          tool_name: 'shell',
+          parameters: {'cmd': 'rm -rf /var/lib/canonical_data'},
+          rationale: 'Unconstrained destructive action'
+        })
+      });
+    }
+
+    async function testFalseCompletion() {
+      if (!currentSession) return;
+      await fetch(`/v1/sessions/${currentSession}/claim-completion`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          subtask_id: 'final',
+          artifacts: ['unverified_file.bin'],
+          evidence: {},
+          confidence: 1.0
+        })
+      });
+    }
+
+    async function testValidCompletion() {
+      if (!currentSession) return;
+      await fetch(`/v1/sessions/${currentSession}/actions/commit`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          proposal: {action_type: 'tool_call', tool_name: 'finalize_spec', parameters: {}},
+          output: 'Task completed and verified.',
+          state_diff: {'verified_output': true},
+          success: true,
+          tokens_used: 50
+        })
+      });
+      await fetch(`/v1/sessions/${currentSession}/claim-completion`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          subtask_id: 'final',
+          artifacts: ['output.txt'],
+          evidence: {'verified_output': true},
+          confidence: 1.0
+        })
+      });
+      const res = await fetch(`/v1/sessions/${currentSession}`);
+      const d = await res.json();
+      document.getElementById('sessStatusBadge').innerText = d.status;
+    }
+
+    setInterval(loadTelemetry, 3000);
+    loadTelemetry();
+    refreshSessions();
+  </script>
+</body>
+</html>

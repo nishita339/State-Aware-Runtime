@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sadr-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sadr-api-deployment
+  namespace: sadr-system
+  labels:
+    app: sadr-api
+    tier: runtime
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: sadr-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: sadr-api
+    spec:
+      containers:
+        - name: sadr-api
+          image: ghcr.io/state-aware-runtime/sadr-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: SADR_HOST
+              value: "0.0.0.0"
+            - name: SADR_PORT
+              value: "8000"
+            - name: SADR_WORKERS
+              value: "4"
+            - name: SADR_REDIS_URL
+              value: "redis://sadr-redis-service.sadr-system.svc.cluster.local:6379/0"
+            - name: SADR_USE_REDIS
+              value: "true"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sadr-api-service
+  namespace: sadr-system
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+  selector:
+    app: sadr-api
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sadr-api-hpa
+  namespace: sadr-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sadr-api-deployment
+  minReplicas: 5
+  maxReplicas: 100
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sadr-api-ingress
+  namespace: sadr-system
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "sadr-api-service"
+spec:
+  rules:
+    - host: api.sadr.runtime.ai
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sadr-api-service
+                port:
+                  number: 8000

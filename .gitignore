@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Testing & caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# SADR Runtime State & Logs (ephemeral artifacts)
+workspace/
+demo_workspace/
+state/
+demo_state/
+logs/
+demo_logs/
+*.jsonl
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
