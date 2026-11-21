@@ -319,7 +319,7 @@ def generate_paper():
     title_text = "State-Aware Durable Runtime: Formal State Governance, Bounded Speculative Rollback, and Anti-Fabrication Firewalls for Autonomous Long-Horizon Agentic Execution"
     story.append(Paragraph(title_text, title_style))
 
-    author_text = "<b>Nishita Singh</b>, <i>Member, IEEE</i><br/>" \
+    author_text = "<b>Nishita Singh</b><br/>" \
                   "<i>Department of Computer Science and Engineering, Rajasthan Technical University, Kota 324010, India</i><br/>" \
                   "e-mail: nishita.23cse425@rtu.ac.in &nbsp;|&nbsp; GitHub: https://github.com/nishita339/State-Aware-Runtime"
     story.append(Paragraph(author_text, author_style))
@@ -904,14 +904,14 @@ def generate_paper():
     story.append(Spacer(1, 4))
     story.append(Paragraph("AUTHOR BIOGRAPHY", sec_style))
     bio_text = (
-        "<b>Nishita Singh</b> (Member, IEEE) is a researcher in the Department of Computer Science "
-        "and Engineering at Rajasthan Technical University (RTU), Kota, India. Her core research "
-        "focuses on autonomous AI agent architectures, formal verification, distributed transaction models, "
-        "and runtime fault tolerance. She engineered the State-Aware Durable Runtime (SADR) to resolve "
-        "the epistemic drift and non-deterministic state corruption inherent in long-horizon LLM workflows. "
-        "Her work bridges the gap between theoretical software engineering principles (Design by Contract, "
-        "write-ahead logging, two-phase commits) and frontier generative AI systems. "
-        "e-mail: nishita.23cse425@rtu.ac.in."
+        "<b>Nishita Singh</b> is a final-year B.Tech. undergraduate student in the Department of Computer Science "
+        "and Engineering at Rajasthan Technical University (RTU), Kota, India. Her core research focuses on "
+        "autonomous AI agent architectures, formal verification, distributed transaction models, and runtime "
+        "fault tolerance for LLMs. She designed and engineered the State-Aware Durable Runtime (SADR) to resolve "
+        "epistemic drift and non-deterministic state corruption inherent in long-horizon agent workflows. Her work "
+        "bridges the gap between classical software reliability principles (Design by Contract, write-ahead logging, "
+        "two-phase commit protocols) and frontier generative AI engineering. She is an active open-source systems "
+        "contributor. e-mail: nishita.23cse425@rtu.ac.in."
     )
     story.append(Paragraph(bio_text, body_style))
 

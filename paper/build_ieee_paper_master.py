@@ -307,7 +307,7 @@ def build_pdf():
     t_text = "State-Aware Durable Runtime: Formal State Governance, Bounded Speculative Rollback, and Anti-Fabrication Firewalls for Autonomous Long-Horizon Agentic Execution"
     story.append(Paragraph(t_text, title_s))
 
-    a_text = "<b>Nishita Singh</b>, <i>Member, IEEE</i><br/>" \
+    a_text = "<b>Nishita Singh</b><br/>" \
              "<i>Department of Computer Science and Engineering, Rajasthan Technical University, Kota 324010, India</i><br/>" \
              "e-mail: nishita.23cse425@rtu.ac.in &nbsp;|&nbsp; GitHub: https://github.com/nishita339/State-Aware-Runtime"
     story.append(Paragraph(a_text, author_s))
