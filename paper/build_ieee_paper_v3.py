@@ -66,13 +66,13 @@ class IEEEContinuousCanvas(canvas.Canvas):
             self.drawRightString(right_m, bot_y, f"Page {self._pageNumber} of {total_pages}")
             self.line(left_m, bot_y + 9, right_m, bot_y + 9)
         else:
-            # Alternating running headers
+            # Alternating running headers (IEEE standard: zero horizontal collision)
             if self._pageNumber % 2 == 1:
-                self.drawRightString(right_m, top_y, "IEEE TRANSACTIONS ON RELIABLE AND DISTRIBUTED SYSTEMS, VOL. 14, NO. 3, MARCH 2026")
                 self.drawString(left_m, top_y, "SINGH: STATE-AWARE DURABLE RUNTIME FOR LONG-HORIZON AGENTIC EXECUTION")
+                self.drawRightString(right_m, top_y, str(self._pageNumber))
             else:
-                self.drawString(left_m, top_y, "IEEE TRANSACTIONS ON RELIABLE AND DISTRIBUTED SYSTEMS, VOL. 14, NO. 3, MARCH 2026")
-                self.drawRightString(right_m, top_y, "SINGH: STATE-AWARE DURABLE RUNTIME FOR LONG-HORIZON AGENTIC EXECUTION")
+                self.drawString(left_m, top_y, str(self._pageNumber))
+                self.drawRightString(right_m, top_y, "IEEE TRANSACTIONS ON RELIABLE AND DISTRIBUTED SYSTEMS, VOL. 14, NO. 3, MARCH 2026")
 
             self.setStrokeColor(colors.HexColor("#888888"))
             self.setLineWidth(0.5)
@@ -100,7 +100,7 @@ def generate_paper():
     )
 
     # 1. Page 1 Template: Title Banner across top (522 pt) + 2 columns at bottom (252 pt each)
-    banner_h = 240
+    banner_h = 345
     frame_p1_top = Frame(45, 792 - 54 - banner_h, 522, banner_h, id='p1_top',
                          leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
     col_p1_h = 792 - 108 - banner_h - 12
